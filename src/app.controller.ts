@@ -1,15 +1,17 @@
-import { Controller, Get } from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
 import { AppService } from './app.service';
 
-@Controller()
+@Controller('api')
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
-  @Get()
-  async getHello(): Promise<any> {
-    // TODO: Remove this sample code
-    const clientId = '9f71a9da-4991-11ed-b878-0242ac120002';
-    const details = await this.appService.queryClientDetails(clientId);
-    return JSON.stringify(details);
+  @Post('space')
+  async dataFromSpace(@Body() body: any): Promise<any> {
+    if (body['className'] === 'InitPayload') {
+      const clientId = body['clientId'];
+      const clientSecret = body['clientSecret'];
+      const serverUrl = body['serverUrl'];
+      await this.appService.storeClientDetails(clientId, { clientSecret, serverUrl });
+    }
   }
 }
