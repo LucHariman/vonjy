@@ -49,6 +49,17 @@ export class AppService {
     );
   }
 
+  sendMessageToSpaceChannel({ serverUrl, accessToken }: SpaceSession, channelId: string, message: string): Observable<void> {
+    return this.http.post(
+      `${serverUrl}/api/http/chats/messages/send-message`,
+      {
+        channel: { className: 'ChannelIdentifier.Id', id: channelId },
+        content: { className: 'ChatMessage.Text', text: message }
+      },
+      { headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
+    ).pipe(map(() => undefined));
+  }
+
   private getSpaceToken({ clientId, clientSecret, serverUrl }: SpaceClient): Observable<string> {
     return this.http.post(
       `${serverUrl}/oauth/token`,

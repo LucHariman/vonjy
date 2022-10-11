@@ -1,5 +1,5 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { map, Observable } from 'rxjs';
+import { map, Observable, switchMap } from 'rxjs';
 import { AppService } from './app.service';
 
 @Controller('api')
@@ -15,11 +15,12 @@ export class AppController {
       return this.appService.storeSpaceClient({ clientId, clientSecret, serverUrl });
     } else if (body['className'] === 'MessagePayload') {
       const clientId = body['clientId'];
-      return this.appService.authenticateToSpace(clientId).pipe(
-        map(session => {
+      const message: string = body['message'];
+      const channelId: string = message['channelId'];
+      const messageText: string = message['body']['text'];
 
-          console.log(session)
-        }),
+      return this.appService.authenticateToSpace(clientId).pipe(
+        switchMap(session => this.appService.sendMessageToSpaceChannel(session, channelId, messageText)),
       );
     }
   }
