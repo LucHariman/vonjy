@@ -1,5 +1,5 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { map, Observable, switchMap } from 'rxjs';
+import { catchError, Observable, of, switchMap } from 'rxjs';
 import { AppService } from './app.service';
 
 @Controller('api')
@@ -20,7 +20,12 @@ export class AppController {
       const messageText: string = message['body']['text'];
 
       return this.appService.authenticateToSpace(clientId).pipe(
-        switchMap(session => this.appService.sendMessageToSpaceChannel(session, channelId, messageText)),
+        switchMap(session =>
+          this.appService.searchStackoverflowAnswer(messageText).pipe(
+            catchError(() => of(`Unfortunately I didn't find an answer for you :face_with_rolling_eyes:`)),
+            switchMap(answer => this.appService.sendMessageToSpaceChannel(session, channelId, answer))
+          )
+        )
       );
     }
   }
