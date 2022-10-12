@@ -2,7 +2,6 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 
 import { firestore } from 'firebase-admin';
-import { NodeHtmlMarkdown } from 'node-html-markdown';
 import { from, map, Observable, switchMap } from 'rxjs';
 
 export interface SpaceClient {
@@ -47,30 +46,6 @@ export class AppService {
           map(accessToken => ({ clientId, serverUrl: spaceClient.serverUrl, accessToken })),
         );
       }),
-    );
-  }
-
-  searchStackoverflowAnswer(question: string): Observable<string> {
-    return this.http.get(
-      'https://api.stackexchange.com/2.2/search/advanced',
-      { params: { order: 'desc', sort: 'relevance', q: question, answers: 1, site: 'stackoverflow', filter: 'withbody' } }
-    ).pipe(
-      map(response => response.data['items'][0]),
-      map(item => item['question_id']),
-      switchMap(questionId =>
-        this.http.get(
-          `https://api.stackexchange.com/2.2/questions/${questionId}/answers`,
-          { params: { order: 'desc', sort: 'votes', site: 'stackoverflow', filter: 'withbody' } }
-        )
-      ),
-      map(response => response.data['items'][0]),
-      map(item =>
-        'Below is what I found on Stackoverflow:' +
-        '\n\n' +
-        new NodeHtmlMarkdown().translate(`<blockquote>${item['body']}</blockquote>`) +
-        '\n\n' +
-        `Source: https://stackoverflow.com/a/${item['answer_id']}`
-      ),
     );
   }
 
