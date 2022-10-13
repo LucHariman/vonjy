@@ -2,7 +2,8 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 
 import { firestore } from 'firebase-admin';
-import { from, map, Observable, switchMap } from 'rxjs';
+import jwtDecode, { JwtPayload } from 'jwt-decode';
+import { defer, from, map, Observable, of, switchMap, tap } from 'rxjs';
 
 export interface SpaceClient {
   clientId: string;
@@ -18,25 +19,42 @@ export interface SpaceSession {
 
 const SPACE_APP_INSTANCES_COLLECTION = 'spaceAppInstances';
 
+function hasTokenExpired(token: string): boolean {
+  const expirationDate = getTokenExpirationDate(token);
+  return expirationDate.getTime() < Date.now();
+}
+
+function getTokenExpirationDate(token: string): Date {
+  const payload = jwtDecode<JwtPayload>(token);
+  if (!payload.exp) {
+    throw new Error('Token has no expiration time!');
+  }
+  return new Date(payload.exp * 1e3);
+}
+
 @Injectable()
 export class AppService {
+
+  // TODO: Replace with Memcache
+  private readonly tokens = new Map<string, string>();
 
   constructor(private readonly http: HttpService) {}
 
   storeSpaceClient({ clientId, clientSecret, serverUrl }: SpaceClient): Observable<void> {
     const collection = firestore().collection(SPACE_APP_INSTANCES_COLLECTION);
-    return from(collection.doc(clientId).set({ clientSecret, serverUrl }))
+    return defer(() => from(collection.doc(clientId).set({ clientSecret, serverUrl })))
       .pipe(map(() => undefined));
   }
 
   querySpaceClient(clientId: string): Observable<SpaceClient | undefined> {
     const collection = firestore().collection(SPACE_APP_INSTANCES_COLLECTION);
-    return from(collection.doc(clientId).get()).pipe(
+    return defer(() => from(collection.doc(clientId).get())).pipe(
       map(snapshot => snapshot.exists ? { ...snapshot.data(), clientId } as SpaceClient : undefined),
     );
   }
 
   authenticateToSpace(clientId: string): Observable<SpaceSession> {
+    // cache token in memory and renew them when expired
     return this.querySpaceClient(clientId).pipe(
       switchMap(spaceClient => {
         if (!spaceClient) {
@@ -61,10 +79,17 @@ export class AppService {
   }
 
   private getSpaceToken({ clientId, clientSecret, serverUrl }: SpaceClient): Observable<string> {
+    const cachedToken = this.tokens.get(clientId);
+    if (cachedToken && !hasTokenExpired(cachedToken)) {
+      return of(cachedToken);
+    }
     return this.http.post(
       `${serverUrl}/oauth/token`,
       new URLSearchParams({ 'grant_type': 'client_credentials', 'scope': '**' }),
       { auth: { username: clientId, password: clientSecret } }
-    ).pipe(map(response => response.data['access_token']));
+    ).pipe(
+      map(response => response.data['access_token']),
+      tap(token => this.tokens.set(clientId, token)),
+    );
   }
 }
