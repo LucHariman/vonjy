@@ -25,6 +25,24 @@ interface Answer {
 
 const API_BASE_URL = 'https://api.stackexchange.com/2.2';
 
+const formatAnswerBody = (htmlText: string): string => {
+  let markdownText = new NodeHtmlMarkdown().translate(`<blockquote>${htmlText}</blockquote>`);
+  const maxTextLength = 1024;
+  if (markdownText.length > maxTextLength) {
+    markdownText = markdownText.slice(0, maxTextLength - 4) + ' ...';
+  }
+  return markdownText;
+}
+
+const buildAnswerText = (site: StackExchangeSite, question: Question, answer: Answer): string =>
+`Below is what I found on ${site.name}:
+
+## Q: ${question.title}
+
+${formatAnswerBody(answer.body)}
+
+Source: ${site.siteUrl}/a/${answer.id}`;
+
 @Injectable()
 export class StackExchangeService {
 
@@ -50,21 +68,8 @@ export class StackExchangeService {
   searchAnswer(q: string, siteSlug: string): Observable<string> {
     const site = this.getSiteBySlug(siteSlug);
     return this.searchRelevantQuestion(q, site).pipe(
-      switchMap(question =>
-        this.searchBestAnswer(question.id, site).pipe(
-          map(answer => ({ question, answer })),
-        )
-      ),
-      map(({ question, answer }) =>
-        `Below is what I found on ${site.name}:` +
-        '\n\n' +
-        `## Q: ${question.title}` +
-        '\n\n' +
-        new NodeHtmlMarkdown().translate(`<blockquote>${answer.body}</blockquote>`) +
-        '\n\n' +
-        `Source: ${site.siteUrl}/a/${answer.id}`
-      ),
-      
+      switchMap(question => this.searchBestAnswer(question.id, site).pipe(map(answer => ({ question, answer })))),
+      map(({ question, answer }) => buildAnswerText(site, question, answer)),
     );
   }
 
