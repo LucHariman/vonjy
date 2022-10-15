@@ -4,7 +4,14 @@ import { catchError, Observable, of, switchMap } from 'rxjs';
 import { SpaceService } from './space';
 import { StackExchangeService } from './stack-exchante';
 
-const welcomeMessage = 'Hey, thanks for having me installed :slightly_smiling_face:';
+interface Command {
+  name: string;
+  param?: string;
+}
+
+const welcomeMessage = `Hey, thanks for having me installed :slightly_smiling_face:
+
+Type "/help" for more information.`;
 
 const noAnswerMessage = 'Unfortunately I didn\'t find an answer for you :face_with_rolling_eyes:';
 
@@ -16,7 +23,8 @@ export class AppController {
   ) {}
 
   @Post('space')
-  dataFromSpace(@Body() body: any): Observable<any> {
+  dataFromSpace(@Body() body: any): any | Observable<any> {
+    // TODO: Verify Space request
     if (body['className'] === 'InitPayload') {
       const clientId = body['clientId'];
       const clientSecret = body['clientSecret'];
@@ -36,18 +44,63 @@ export class AppController {
 
       return this.space.authenticate(clientId).pipe(
         switchMap(session => {
-          const siteSlug = (messageText.match(/(?:^|\W)site:(\w+)(?:\W|$)/) || [])[1] || 'stackoverflow';
-          const question = messageText.replace(/(?:^|\W)site:(\w+)(?:\W|$)/g, ' ');
+          const command = this.parseCommand(messageText, 'stackoverflow');
 
-          return this.stackExchange.searchAnswer(question, siteSlug).pipe(
-            catchError(error => {
-              console.error(error);
-              return of(noAnswerMessage);
-            }),
-            switchMap(answer => this.space.sendMessageToChannel(session, channelId, answer)),
-          );
+          let action: Observable<string>;
+          if (command.name === 'help') {
+            action = of(this.generateHelpPessage());
+          } else {
+            const { name: siteSlug, param: question } = command;
+            action = this.stackExchange.searchAnswer(question, siteSlug).pipe(
+              catchError(error => {
+                console.error(error);
+                return of(noAnswerMessage);
+              })
+            );
+          }
+          return action.pipe(switchMap(answer => this.space.sendMessageToChannel(session, channelId, answer)));
         })
       );
+    } else if (body['className'] === 'ListCommandsPayload') {
+      return this.generateCommands();
     }
+  }
+
+  private parseCommand(message: string, defaultCommandName: string): Command {
+    const match = message.match(/^(\S+)(?:(?:\s+)(.*))?$/);
+    if (match) {
+      const [, name, param] = match;
+      const { commands } = this.generateCommands();
+      if (commands.some(command => command.name === name)) {
+        return { name, param };
+      }
+    }
+    return { name: defaultCommandName, param: message };
+  }
+
+  private generateHelpPessage() {
+    return `I can help you to find the best Stack Exchange answer for the question that matches your search term.
+
+## Available commands
+- \`help\`: shows this usage instruction
+- \`[site-name] [search-term]\`: searches for answer in the indicated site,
+for eg. \`stackoverflow regular expression for date\`
+
+When a search term is typed without starting with a site name, \`stackovervlow\` is applied by default.
+
+## Available sites
+${this.stackExchange.sites.map(site => `- \`${site.slug}\`: ${site.name} - ${site.audience}`).join('\n')}
+`;
+  }
+
+  private generateCommands() {
+    return {
+      commands: [
+        { name: 'help', description: 'Show usage instruction' },
+        ...this.stackExchange.sites.map(site => ({
+          name: site.slug, description: `Search on ${site.name}`
+        }))
+      ],
+    };
   }
 }

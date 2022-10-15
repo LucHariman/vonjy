@@ -4,7 +4,8 @@ import { Injectable } from '@nestjs/common';
 import { NodeHtmlMarkdown } from 'node-html-markdown';
 import { map, Observable, switchMap } from 'rxjs';
 
-import { items as rawSites} from './sites.json'; // Fetched from https://api.stackexchange.com/2.3/sites, rarely updated.
+// List of StackExchange sites fetched from https://api.stackexchange.com/2.3/sites, rarely updated.
+import { items as rawSites} from './sites.json';
 
 interface StackExchangeSite {
   name: string;
