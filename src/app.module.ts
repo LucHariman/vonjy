@@ -3,12 +3,12 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { SpaceService } from './space';
 import { StackExchangeService } from './stack-exchante';
 
 @Module({
   imports: [ConfigModule.forRoot(), HttpModule],
   controllers: [AppController],
-  providers: [AppService, StackExchangeService],
+  providers: [SpaceService, StackExchangeService],
 })
 export class AppModule {}
