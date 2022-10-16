@@ -9,9 +9,9 @@ interface Command {
   param?: string;
 }
 
-const welcomeMessage = `Hey, thanks for having me installed :slightly_smiling_face:
+const welcomeMessage = `Hey, thanks for having me installed :slightly_smiling_face:. How can I help you?
 
-Type "/help" for more information.`;
+Or type \`/help\` for more information.`;
 
 const noAnswerMessage = 'Unfortunately I didn\'t find an answer for you :face_with_rolling_eyes:';
 
@@ -86,7 +86,7 @@ export class AppController {
 - \`[site-name] [search-term]\`: searches for answer in the indicated site,
 for eg. \`stackoverflow regular expression for date\`
 
-When a search term is typed without starting with a site name, \`stackovervlow\` is applied by default.
+When a search term is typed without starting with a site name, \`stackoverflow\` is applied by default.
 
 ## Available sites
 ${this.stackExchange.sites.map(site => `- \`${site.slug}\`: ${site.name} - ${site.audience}`).join('\n')}
