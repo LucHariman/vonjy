@@ -1,10 +1,10 @@
 {
   "name": "vonjy",
   "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "description": "Jetbrains Space chatbot based on Nest framework",
+  "author": "Luc Randrianomenjanahary",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "nest build",
