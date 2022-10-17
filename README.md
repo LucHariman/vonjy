@@ -1,3 +1,5 @@
+<p align="center"><img src="icon.svg" width="128"/></p>
+
 > # *Vonjy*
 > 🇲🇬 *Malagasy noun*  
 > 🌐 *help, rescue, salvation*  
