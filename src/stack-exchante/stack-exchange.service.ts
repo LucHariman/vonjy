@@ -1,5 +1,6 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 import { NodeHtmlMarkdown } from 'node-html-markdown';
 import { map, Observable, switchMap } from 'rxjs';
@@ -46,17 +47,20 @@ Source: ${site.siteUrl}/a/${answer.id}`;
 
 @Injectable()
 export class StackExchangeService {
+  readonly apiKey: string;
 
   readonly sites: ReadonlyArray<StackExchangeSite> = rawSites
-      .filter(item => item.site_type === 'main_site')
-      .map(item => ({
-        name: item.name,
-        siteUrl: item.site_url,
-        slug: item.api_site_parameter,
-        audience: item.audience
-      }));
+    .filter(item => item.site_type === 'main_site')
+    .map(item => ({
+      name: item.name,
+      siteUrl: item.site_url,
+      slug: item.api_site_parameter,
+      audience: item.audience,
+    }));
 
-  constructor(private readonly http: HttpService) {}
+  constructor(private readonly http: HttpService, configService: ConfigService) {
+    this.apiKey = configService.get<string>('STACKAPP_API_KEY');
+  }
 
   getSiteBySlug(slug: string): StackExchangeSite {
     const result = this.sites.find(site => site.slug === slug);
@@ -75,22 +79,32 @@ export class StackExchangeService {
   }
 
   searchRelevantQuestion(q: string, site: StackExchangeSite): Observable<Question> {
-    return this.http.get(
-      `${API_BASE_URL}/search/advanced`,
-      { params: { order: 'desc', sort: 'relevance', q, answers: 1, site: site.slug, filter: 'withbody' } }
-    ).pipe(
-      map(response => response.data['items'][0]),
-      map(item => ({ id: item['question_id'], title: item['title'] }))
+    return this.get(site, '/search/advanced', {
+      order: 'desc',
+      sort: 'relevance',
+      q,
+      answers: 1,
+      filter: 'withbody',
+    }).pipe(
+      map(data => data['items'][0]),
+      map(item => ({ id: item['question_id'], title: item['title'] })),
     );
   }
 
   searchBestAnswer(questionId: string, site: StackExchangeSite): Observable<Answer> {
-    return this.http.get(
-      `${API_BASE_URL}/questions/${questionId}/answers`,
-      { params: { order: 'desc', sort: 'votes', site: site.slug, filter: 'withbody' } }
-    ).pipe(
-      map(response => response.data['items'][0]),
+    return this.get(site, `/questions/${questionId}/answers`, {
+      order: 'desc',
+      sort: 'votes',
+      filter: 'withbody',
+    }).pipe(
+      map(data => data['items'][0]),
       map(item => ({ id: item['answer_id'], body: item['body'] })),
     );
+  }
+
+  private get(site: StackExchangeSite, uri: string, params?: Record<string, any>): Observable<any> {
+    return this.http
+      .get(`${API_BASE_URL}${uri}`, { params: { ...params, key: this.apiKey, site: site.slug } })
+      .pipe(map(response => response.data));
   }
 }
