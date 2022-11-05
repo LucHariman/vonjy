@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { catchError, Observable, of, switchMap } from 'rxjs';
 
 import { SpaceService } from './space';
@@ -23,6 +23,7 @@ export class AppController {
   ) {}
 
   @Post('space')
+  @HttpCode(HttpStatus.OK)
   dataFromSpace(@Body() body: any): any | Observable<any> {
     // TODO: Verify Space request
     if (body['className'] === 'InitPayload') {
