@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { catchError, concat, Observable, of, switchMap } from 'rxjs';
 
 import { SpaceService } from './space';
@@ -69,6 +69,10 @@ export class AppController {
       );
     } else if (body['className'] === 'ListCommandsPayload') {
       return this.generateCommands();
+    } else if (body['className'] === 'AppPublicationCheckPayload') {
+      return;
+    } else {
+      throw new BadRequestException('Unhandled payload type!');
     }
   }
 
