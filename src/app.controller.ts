@@ -1,5 +1,5 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
-import { catchError, Observable, of, switchMap } from 'rxjs';
+import { catchError, concat, Observable, of, switchMap } from 'rxjs';
 
 import { SpaceService } from './space';
 import { StackExchangeService } from './stack-exchante';
@@ -35,7 +35,12 @@ export class AppController {
       const spaceClient = { clientId, clientSecret, serverUrl };
       return this.space.storeClient(spaceClient).pipe(
         switchMap(() => this.space.authenticate(spaceClient)),
-        switchMap(session => this.space.sendMessageToUser(session, userId, welcomeMessage)),
+        switchMap(session =>
+          concat(
+            this.space.setChatBotUIExtension(session),
+            this.space.sendMessageToUser(session, userId, welcomeMessage),
+          ),
+        ),
       );
     } else if (body['className'] === 'MessagePayload') {
       const clientId: string = body['clientId'];

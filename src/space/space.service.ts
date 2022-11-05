@@ -75,6 +75,13 @@ export class SpaceService {
     );
   }
 
+  setChatBotUIExtension(session: SpaceSession): Observable<void> {
+    return this.patch(session, '/applications/ui-extensions', {
+      contextIdentifier: 'global',
+      extensions: [{ className: 'ChatBotUiExtensionIn' }],
+    });
+  }
+
   sendMessageToChannel(session: SpaceSession, channelId: string, message: string): Observable<void> {
     return this.post(session, '/chats/messages/send-message', {
       channel: { className: 'ChannelIdentifier.Id', id: channelId },
@@ -106,6 +113,10 @@ export class SpaceService {
 
   private post(session: SpaceSession, uri: string, data: any): Observable<void> {
     return this.request(session, 'POST', uri, data).pipe(map(() => undefined));
+  }
+
+  private patch(session: SpaceSession, uri: string, data: any): Observable<void> {
+    return this.request(session, 'PATCH', uri, data).pipe(map(() => undefined));
   }
 
   private request({ serverUrl, accessToken }: SpaceSession, method: string, uri: string, data?: any): Observable<any> {
