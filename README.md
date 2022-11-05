@@ -1,7 +1,7 @@
 <p align="center"><img src="icon.svg" width="128"/></p>
 
 > # *Vonjy*
-> 🇲🇬 *Malagasy noun*  
+> 🇲🇬 *Malagasy noun*, `/vundz/`    
 > 🌐 *help, rescue, salvation*  
 
 ## Description
